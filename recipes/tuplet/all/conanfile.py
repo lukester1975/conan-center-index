@@ -20,7 +20,7 @@ class TupletConan(ConanFile):
 
     @property
     def _min_cppstd(self):
-        return "20"
+        return "17"
 
     @property
     def _compilers_minimum_version(self):
@@ -51,7 +51,7 @@ class TupletConan(ConanFile):
         minimum_version = self._compilers_minimum_version.get(compiler, False)
         if minimum_version and loose_lt_semver(version, minimum_version):
             raise ConanInvalidConfiguration(
-                f"{self.name} {self.version} requires C++20, which your compiler ({compiler}-{version}) does not support")
+                f"{self.name} {self.version} requires C++17, which your compiler ({compiler}-{version}) does not support")
 
     def layout(self):
         basic_layout(self, src_folder="src")

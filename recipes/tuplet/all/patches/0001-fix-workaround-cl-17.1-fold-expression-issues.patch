@@ -1,0 +1,31 @@
+From b8a5bb75e44482eddc9bdfa04c7aed56d6d46b59 Mon Sep 17 00:00:00 2001
+From: Luke Elliott <luke.b.elliott@gmail.com>
+Date: Sun, 12 Mar 2023 16:55:14 +0000
+Subject: [PATCH] fix: workaround cl 17.1 fold expression issues.
+
+#29
+---
+ include/tuplet/tuple.hpp | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/include/tuplet/tuple.hpp b/include/tuplet/tuple.hpp
+index 749d32a..f385e9f 100644
+--- a/include/tuplet/tuple.hpp
++++ b/include/tuplet/tuple.hpp
+@@ -895,9 +895,12 @@ namespace tuplet {
+ 
+         template <class U, class... B1, class... B2>
+         constexpr void _assign_tup(U&& u, type_list<B1...>, type_list<B2...>) {
++            // Not: (void(B1::value = static_cast<U&&>(u).identity_t<B2>::value), ...);
+             // See:
+             // https://developercommunity.visualstudio.com/t/fold-expressions-unreliable-in-171-with-c20/1676476
+-            (void(B1::value = static_cast<U&&>(u).identity_t<B2>::value), ...);
++            // https://github.com/codeinred/tuplet/issues/21
++            // https://github.com/codeinred/tuplet/issues/29
++            (void(B1::value = std::forward<identity_t<B2>>(u).value), ...);
+         }
+         template <class U, size_t... I>
+         constexpr void _assign_index_tup(U&& u, std::index_sequence<I...>) {
+-- 
+2.39.2.windows.1
+

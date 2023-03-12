@@ -1,7 +1,7 @@
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
-from conan.tools.files import copy, get
+from conan.tools.files import export_conandata_patches, apply_conandata_patches, copy, get
 from conan.tools.layout import basic_layout
 from conan.tools.scm import Version
 import os
@@ -41,6 +41,9 @@ class TupletConan(ConanFile):
             "apple-clang": "12"
         }
 
+    def export_sources(self):
+        export_conandata_patches(self)
+
     def package_id(self):
         self.info.clear()
 
@@ -70,7 +73,7 @@ class TupletConan(ConanFile):
             destination=self.source_folder, strip_root=True)
 
     def build(self):
-        pass
+        apply_conandata_patches(self)
 
     def package(self):
         include_folder = os.path.join(self.source_folder, "include")

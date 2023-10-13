@@ -3,13 +3,29 @@ from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd, cross_building
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 from conan.tools.files import apply_conandata_patches, copy, export_conandata_patches, get, rmdir
-from conan.tools.microsoft import is_msvc, is_msvc_static_runtime
+from conan.tools.microsoft import is_msvc, msvc_runtime_flag
 from conan.tools.scm import Version
 
 import os
 import glob
 
 required_conan_version = ">=1.53.0"
+
+
+def _is_cl_frontend(conanfile):
+    if is_msvc(conanfile):
+        return True
+
+    if conanfile.settings.get_safe("compiler") != "clang":
+        return False
+
+    generator = conanfile.conf.get("tools.cmake.cmaketoolchain:generator")
+    return generator.startswith("Visual Studio") if generator is not None else False
+
+
+def _is_msvc_static_runtime(conanfile):
+    return "MT" in msvc_runtime_flag(conanfile)
+
 
 class ArrowConan(ConanFile):
     name = "arrow"
@@ -254,7 +270,7 @@ class ArrowConan(ConanFile):
                 if self._parquet() and self.settings.compiler == "gcc" and self.settings.compiler.version < Version("4.9"):
                     return True
             elif version.major >= "2":
-                if is_msvc(self):
+                if _is_cl_frontend(self):
                     return True
             return False
         else:
@@ -396,8 +412,8 @@ class ArrowConan(ConanFile):
             }.get(str(self.settings.arch), str(self.settings.arch))
             if cmake_system_processor == "aarch64":
                 tc.variables["ARROW_CPU_FLAG"] = "armv8"
-        if is_msvc(self):
-            tc.variables["ARROW_USE_STATIC_CRT"] = is_msvc_static_runtime(self)
+        if _is_cl_frontend(self):
+            tc.variables["ARROW_USE_STATIC_CRT"] = _is_msvc_static_runtime(self)
         tc.variables["ARROW_DEPENDENCY_SOURCE"] = "SYSTEM"
         tc.variables["ARROW_PACKAGE_KIND"] = "conan" # See https://github.com/conan-io/conan-center-index/pull/14903/files#r1057938314 for details
         tc.variables["ARROW_GANDIVA"] = bool(self.options.gandiva)
@@ -496,8 +512,8 @@ class ArrowConan(ConanFile):
         if self.options.with_utf8proc:
             tc.variables["ARROW_UTF8PROC_USE_SHARED"] = bool(self.dependencies["utf8proc"].options.shared)
         tc.variables["BUILD_WARNING_LEVEL"] = "PRODUCTION"
-        if is_msvc(self):
-            tc.variables["ARROW_USE_STATIC_CRT"] = is_msvc_static_runtime(self)
+        if _is_cl_frontend(self):
+            tc.variables["ARROW_USE_STATIC_CRT"] = _is_msvc_static_runtime(self)
         if self.options.with_llvm:
             tc.variables["LLVM_DIR"] = self.dependencies["llvm-core"].package_folder.replace("\\", "/")
 
@@ -549,7 +565,7 @@ class ArrowConan(ConanFile):
 
         self.cpp_info.set_property("cmake_file_name", "Arrow")
 
-        suffix = "_static" if is_msvc(self) and not self.options.shared else ""
+        suffix = "_static" if _is_cl_frontend(self) and not self.options.shared else ""
 
         self.cpp_info.components["libarrow"].set_property("pkg_config_name", "arrow")
         self.cpp_info.components["libarrow"].libs = [f"arrow{suffix}"]

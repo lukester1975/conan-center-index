@@ -388,7 +388,7 @@ class ArrowConan(ConanFile):
         if self.options.with_s3 and not self.dependencies["aws-sdk-cpp"].options.config:
             raise ConanInvalidConfiguration("arrow:with_s3 requires aws-sdk-cpp:config is True.")
 
-        if self.options.shared and self.options.with_jemalloc:
+        if self.options.get_safe("shared") and self.options.with_jemalloc:
             if self.dependencies["jemalloc"].options.enable_cxx:
                 raise ConanInvalidConfiguration("jemmalloc.enable_cxx of a static jemalloc must be disabled")
 
@@ -425,8 +425,8 @@ class ArrowConan(ConanFile):
         tc.variables["PARQUET_REQUIRE_ENCRYPTION"] = bool(self.options.encryption)
         tc.variables["ARROW_HDFS"] = bool(self.options.hdfs_bridgs)
         tc.variables["ARROW_VERBOSE_THIRDPARTY_BUILD"] = True
-        tc.variables["ARROW_BUILD_SHARED"] = bool(self.options.shared)
-        tc.variables["ARROW_BUILD_STATIC"] = not bool(self.options.shared)
+        tc.variables["ARROW_BUILD_SHARED"] = bool(self.options.get_safe("shared"))
+        tc.variables["ARROW_BUILD_STATIC"] = not bool(self.options.get_safe("shared"))
         tc.variables["ARROW_NO_DEPRECATED_API"] = not bool(self.options.deprecated)
         tc.variables["ARROW_FLIGHT"] = self.options.with_flight_rpc
         tc.variables["ARROW_FLIGHT_SQL"] = bool(self.options.get_safe("with_flight_sql", False))
@@ -442,10 +442,10 @@ class ArrowConan(ConanFile):
         tc.variables["BOOST_SOURCE"] = "SYSTEM"
         tc.variables["Protobuf_SOURCE"] = "SYSTEM"
         if self.options.with_protobuf:
-            tc.variables["ARROW_PROTOBUF_USE_SHARED"] = bool(self.dependencies["protobuf"].options.shared)
+            tc.variables["ARROW_PROTOBUF_USE_SHARED"] = bool(self.dependencies["protobuf"].options.get_safe("shared"))
         tc.variables["gRPC_SOURCE"] = "SYSTEM"
         if self.options.with_grpc:
-            tc.variables["ARROW_GRPC_USE_SHARED"] = bool(self.dependencies["grpc"].options.shared)
+            tc.variables["ARROW_GRPC_USE_SHARED"] = bool(self.dependencies["grpc"].options.get_safe("shared"))
 
         tc.variables["ARROW_USE_GLOG"] = self.options.with_glog
         tc.variables["GLOG_SOURCE"] = "SYSTEM"
@@ -453,23 +453,23 @@ class ArrowConan(ConanFile):
         tc.variables["ARROW_WITH_BROTLI"] = bool(self.options.with_brotli)
         tc.variables["brotli_SOURCE"] = "SYSTEM"
         if self.options.with_brotli:
-            tc.variables["ARROW_BROTLI_USE_SHARED"] = bool(self.dependencies["brotli"].options.shared)
+            tc.variables["ARROW_BROTLI_USE_SHARED"] = bool(self.dependencies["brotli"].options.get_safe("shared"))
         tc.variables["gflags_SOURCE"] = "SYSTEM"
         if self.options.with_gflags:
-            tc.variables["ARROW_GFLAGS_USE_SHARED"] = bool(self.dependencies["gflags"].options.shared)
+            tc.variables["ARROW_GFLAGS_USE_SHARED"] = bool(self.dependencies["gflags"].options.get_safe("shared"))
         tc.variables["ARROW_WITH_BZ2"] = bool(self.options.with_bz2)
         tc.variables["BZip2_SOURCE"] = "SYSTEM"
         if self.options.with_bz2:
-            tc.variables["ARROW_BZ2_USE_SHARED"] = bool(self.dependencies["bzip2"].options.shared)
+            tc.variables["ARROW_BZ2_USE_SHARED"] = bool(self.dependencies["bzip2"].options.get_safe("shared"))
         tc.variables["ARROW_WITH_LZ4"] = bool(self.options.with_lz4)
         tc.variables["lz4_SOURCE"] = "SYSTEM"
         if self.options.with_lz4:
-            tc.variables["ARROW_LZ4_USE_SHARED"] = bool(self.dependencies["lz4"].options.shared)
+            tc.variables["ARROW_LZ4_USE_SHARED"] = bool(self.dependencies["lz4"].options.get_safe("shared"))
         tc.variables["ARROW_WITH_SNAPPY"] = bool(self.options.with_snappy)
         tc.variables["RapidJSON_SOURCE"] = "SYSTEM"
         tc.variables["Snappy_SOURCE"] = "SYSTEM"
         if self.options.with_snappy:
-            tc.variables["ARROW_SNAPPY_USE_SHARED"] = bool(self.dependencies["snappy"].options.shared)
+            tc.variables["ARROW_SNAPPY_USE_SHARED"] = bool(self.dependencies["snappy"].options.get_safe("shared"))
         tc.variables["ARROW_WITH_ZLIB"] = bool(self.options.with_zlib)
         tc.variables["re2_SOURCE"] = "SYSTEM"
         tc.variables["ZLIB_SOURCE"] = "SYSTEM"
@@ -482,20 +482,20 @@ class ArrowConan(ConanFile):
         else:
             tc.variables["ZSTD_SOURCE"] = "SYSTEM"
         if self.options.with_zstd:
-            tc.variables["ARROW_ZSTD_USE_SHARED"] = bool(self.dependencies["zstd"].options.shared)
+            tc.variables["ARROW_ZSTD_USE_SHARED"] = bool(self.dependencies["zstd"].options.get_safe("shared"))
         tc.variables["ORC_SOURCE"] = "SYSTEM"
         tc.variables["ARROW_WITH_THRIFT"] = bool(self.options.with_thrift)
         tc.variables["Thrift_SOURCE"] = "SYSTEM"
         if self.options.with_thrift:
             tc.variables["THRIFT_VERSION"] = bool(self.dependencies["thrift"].ref.version) # a recent thrift does not require boost
-            tc.variables["ARROW_THRIFT_USE_SHARED"] = bool(self.dependencies["thrift"].options.shared)
+            tc.variables["ARROW_THRIFT_USE_SHARED"] = bool(self.dependencies["thrift"].options.get_safe("shared"))
         tc.variables["ARROW_USE_OPENSSL"] = self.options.with_openssl
         if self.options.with_openssl:
             tc.variables["OPENSSL_ROOT_DIR"] = self.dependencies["openssl"].package_folder.replace("\\", "/")
-            tc.variables["ARROW_OPENSSL_USE_SHARED"] = bool(self.dependencies["openssl"].options.shared)
+            tc.variables["ARROW_OPENSSL_USE_SHARED"] = bool(self.dependencies["openssl"].options.get_safe("shared"))
         if self.options.with_boost:
             tc.variables["ARROW_USE_BOOST"] = True
-            tc.variables["ARROW_BOOST_USE_SHARED"] = bool(self.dependencies["boost"].options.shared)
+            tc.variables["ARROW_BOOST_USE_SHARED"] = bool(self.dependencies["boost"].options.get_safe("shared"))
         tc.variables["ARROW_S3"] = bool(self.options.with_s3)
         tc.variables["AWSSDK_SOURCE"] = "SYSTEM"
         tc.variables["ARROW_BUILD_UTILITIES"] = bool(self.options.cli)
@@ -510,7 +510,7 @@ class ArrowConan(ConanFile):
         tc.variables["ARROW_BOOST_REQUIRED"] = self.options.with_boost
         tc.variables["utf8proc_SOURCE"] = "SYSTEM"
         if self.options.with_utf8proc:
-            tc.variables["ARROW_UTF8PROC_USE_SHARED"] = bool(self.dependencies["utf8proc"].options.shared)
+            tc.variables["ARROW_UTF8PROC_USE_SHARED"] = bool(self.dependencies["utf8proc"].options.get_safe("shared"))
         tc.variables["BUILD_WARNING_LEVEL"] = "PRODUCTION"
         if _is_cl_frontend(self):
             tc.variables["ARROW_USE_STATIC_CRT"] = _is_msvc_static_runtime(self)
@@ -565,11 +565,11 @@ class ArrowConan(ConanFile):
 
         self.cpp_info.set_property("cmake_file_name", "Arrow")
 
-        suffix = "_static" if _is_cl_frontend(self) and not self.options.shared else ""
+        suffix = "_static" if _is_cl_frontend(self) and not self.options.get_safe("shared") else ""
 
         self.cpp_info.components["libarrow"].set_property("pkg_config_name", "arrow")
         self.cpp_info.components["libarrow"].libs = [f"arrow{suffix}"]
-        if not self.options.shared:
+        if not self.options.get_safe("shared"):
             self.cpp_info.components["libarrow"].defines = ["ARROW_STATIC"]
             if self.settings.os in ["Linux", "FreeBSD"]:
                 self.cpp_info.components["libarrow"].system_libs = ["pthread", "m", "dl", "rt"]
@@ -578,7 +578,7 @@ class ArrowConan(ConanFile):
             self.cpp_info.components["libparquet"].set_property("pkg_config_name", "parquet")
             self.cpp_info.components["libparquet"].libs = [f"parquet{suffix}"]
             self.cpp_info.components["libparquet"].requires = ["libarrow"]
-            if not self.options.shared:
+            if not self.options.get_safe("shared"):
                 self.cpp_info.components["libparquet"].defines = ["PARQUET_STATIC"]
 
         if self.options.get_safe("substrait"):
@@ -600,7 +600,7 @@ class ArrowConan(ConanFile):
             self.cpp_info.components["libgandiva"].set_property("pkg_config_name", "gandiva")
             self.cpp_info.components["libgandiva"].libs = [f"gandiva{suffix}"]
             self.cpp_info.components["libgandiva"].requires = ["libarrow"]
-            if not self.options.shared:
+            if not self.options.get_safe("shared"):
                 self.cpp_info.components["libgandiva"].defines = ["GANDIVA_STATIC"]
 
         if self.options.with_flight_rpc:

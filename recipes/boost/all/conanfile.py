@@ -9,7 +9,7 @@ from conan.tools.files import (
 )
 from conan.tools.gnu import AutotoolsToolchain
 from conan.tools.layout import basic_layout
-from conan.tools.microsoft import is_msvc, is_msvc_static_runtime, MSBuildToolchain, msvc_runtime_flag, VCVars
+from conan.tools.microsoft import is_msvc, MSBuildToolchain, msvc_runtime_flag, VCVars
 from conan.tools.scm import Version
 
 import glob
@@ -22,6 +22,25 @@ import sys
 import yaml
 
 required_conan_version = ">=1.53.0"
+
+
+def _is_clang_cl(conanfile):
+    if conanfile.settings.get_safe("compiler") != "clang":
+        return False
+
+    generator = conanfile.conf.get("tools.cmake.cmaketoolchain:generator")
+    return generator.startswith("Visual Studio") if generator is not None else False
+
+
+def _is_cl_frontend(conanfile):
+    if is_msvc(conanfile):
+        return True
+
+    return _is_clang_cl(conanfile)
+
+
+def _is_msvc_static_runtime(conanfile):
+    return "MT" in msvc_runtime_flag(conanfile)
 
 
 # When adding (or removing) an option, also add this option to the list in
@@ -230,10 +249,6 @@ class BoostConan(ConanFile):
     @property
     def _settings_build(self):
         return getattr(self, "settings_build", self.settings)
-
-    @property
-    def _is_clang_cl(self):
-        return self.settings.os == "Windows" and self.settings.compiler == "clang"
 
     @property
     def _python_executable(self):
@@ -454,7 +469,7 @@ class BoostConan(ConanFile):
                 if not self.options.get_safe(f"without_{lib}"):
                     raise ConanInvalidConfiguration(f"Boost '{lib}' library requires multi threading")
 
-        if is_msvc(self) and self._shared and is_msvc_static_runtime(self):
+        if _is_cl_frontend(self) and self._shared and _is_msvc_static_runtime(self):
             raise ConanInvalidConfiguration("Boost can not be built as shared library with MT runtime.")
 
         if not self.options.without_locale and self.options.i18n_backend_iconv == "off" and \
@@ -732,8 +747,8 @@ class BoostConan(ConanFile):
             libdir = os.path.join(os.path.dirname(libdest), "libs")
 
         candidates = [ldlibrary, library]
-        library_prefixes = [""] if is_msvc(self) else ["", "lib"]
-        library_suffixes = [".lib"] if is_msvc(self) else [".so", ".dll.a", ".a"]
+        library_prefixes = [""] if _is_cl_frontend(self) else ["", "lib"]
+        library_suffixes = [".lib"] if _is_cl_frontend(self) else [".so", ".dll.a", ".a"]
         if with_dyld:
             library_suffixes.insert(0, ".dylib")
 
@@ -1027,8 +1042,8 @@ class BoostConan(ConanFile):
         if self._with_zstd:
             add_defines("zstd")
 
-        if is_msvc(self):
-            flags.append(f"runtime-link={'static' if is_msvc_static_runtime(self) else 'shared'}")
+        if _is_cl_frontend(self):
+            flags.append(f"runtime-link={'static' if _is_msvc_static_runtime(self) else 'shared'}")
             flags.append(f"runtime-debugging={'on' if 'd' in msvc_runtime_flag(self) else 'off'}")
 
         # For details https://boostorg.github.io/build/manual/master/index.html
@@ -1062,7 +1077,7 @@ class BoostConan(ConanFile):
         if self.settings.build_type == "RelWithDebInfo":
             if self.settings.compiler == "gcc" or "clang" in str(self.settings.compiler):
                 cxx_flags.append("-g")
-            elif is_msvc(self):
+            elif _is_cl_frontend(self):
                 cxx_flags.append("/Z7")
 
         # Standalone toolchain fails when declare the std lib
@@ -1123,7 +1138,7 @@ class BoostConan(ConanFile):
             if not self.dependencies["icu"].options.shared:
                 # Using ICU_OPTS to pass ICU system libraries is not possible due to Boost.Regex disallowing it.
                 icu_system_libs = self.dependencies["icu"].cpp_info.aggregated_components().system_libs
-                if is_msvc(self):
+                if _is_cl_frontend(self):
                     icu_ldflags = " ".join(f"{l}.lib" for l in icu_system_libs)
                 else:
                     icu_ldflags = " ".join(f"-l{l}" for l in icu_system_libs)
@@ -1277,7 +1292,7 @@ class BoostConan(ConanFile):
         asflags = buildenv_vars.get("ASFLAGS", "") + " "
 
         sysroot = self.conf.get("tools.build:sysroot")
-        if sysroot and not is_msvc(self):
+        if sysroot and not _is_cl_frontend(self):
             sysroot = sysroot.replace("\\", "/")
             sysroot = f'"{sysroot}"' if ' ' in sysroot else sysroot
             cppflags += f"--sysroot={sysroot} "
@@ -1319,8 +1334,8 @@ class BoostConan(ConanFile):
 
     @property
     def _toolset(self):
-        if is_msvc(self):
-            return "clang-win" if self.settings.compiler.get_safe("toolset") == "ClangCL" else "msvc"
+        if _is_cl_frontend(self):
+            return "clang-win" if _is_clang_cl(self) else "msvc"
         if self.settings.os == "Windows" and self.settings.compiler == "clang":
             return "clang-win"
         if self.settings.os == "Emscripten" and self.settings.compiler == "clang":
@@ -1386,7 +1401,7 @@ class BoostConan(ConanFile):
         if self.settings.os == "Emscripten" and not self.options.header_only:
             self._create_emscripten_libs()
 
-        if is_msvc(self) and self._shared:
+        if _is_cl_frontend(self) and self._shared:
             # Some boost releases contain both static and shared variants of some libraries (if shared=True)
             all_libs = set(collect_libs(self, "lib"))
             static_libs = set(l for l in all_libs if l.startswith("lib"))
@@ -1534,7 +1549,7 @@ class BoostConan(ConanFile):
 
             # Note that "_libboost" requires "headers" so these defines will be applied to all the libraries too.
             self.cpp_info.components["headers"].requires.append("disable_autolinking")
-            if is_msvc(self) or self._is_clang_cl:
+            if _is_cl_frontend(self):
                 if self.options.magic_autolink:
                     if self.options.layout == "system":
                         self.cpp_info.components["headers"].defines.append("BOOST_AUTO_LINK_SYSTEM")
@@ -1577,9 +1592,9 @@ class BoostConan(ConanFile):
                 "ach": "",
                 "version": "",
             }
-            if is_msvc(self):  # FIXME: mingw?
+            if _is_cl_frontend(self):  # FIXME: mingw?
                 # FIXME: add 'y' when using cpython cci package and when python is built in debug mode
-                static_runtime_key = "s" if is_msvc_static_runtime(self) else ""
+                static_runtime_key = "s" if _is_msvc_static_runtime(self) else ""
                 debug_runtime_key = "g" if "d" in msvc_runtime_flag(self) else ""
                 debug_key = "d" if self.settings.build_type == "Debug" else ""
                 abi = static_runtime_key + debug_runtime_key + debug_key
@@ -1611,7 +1626,7 @@ class BoostConan(ConanFile):
             def add_libprefix(n):
                 """ On MSVC, static libraries are built with a 'lib' prefix. Some libraries do not support shared, so are always built as a static library. """
                 libprefix = ""
-                if is_msvc(self) and (not self._shared or n in self._dependencies["static_only"]):
+                if _is_cl_frontend(self) and (not self._shared or n in self._dependencies["static_only"]):
                     libprefix = "lib"
                 return libprefix + n
 
@@ -1737,7 +1752,7 @@ class BoostConan(ConanFile):
 
                 self.cpp_info.components[f"numpy{pyversion.major}{pyversion.minor}"].requires = ["numpy"]
 
-            if is_msvc(self) or self._is_clang_cl:
+            if _is_cl_frontend(self):
                 # https://github.com/conan-community/conan-boost/issues/127#issuecomment-404750974
                 self.cpp_info.components["_libboost"].system_libs.append("bcrypt")
             elif self.settings.os == "Linux":

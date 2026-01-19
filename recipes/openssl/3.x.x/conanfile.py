@@ -1,5 +1,5 @@
 from conan import ConanFile
-from conan.errors import ConanInvalidConfiguration
+from conan.errors import ConanException, ConanInvalidConfiguration
 from conan.tools.apple import fix_apple_shared_install_name, is_apple_os, XCRun
 from conan.tools.build import build_jobs
 from conan.tools.files import chdir, copy, get, replace_in_file, rm, rmdir, save
@@ -7,6 +7,7 @@ from conan.tools.gnu import AutotoolsToolchain
 from conan.tools.layout import basic_layout
 from conan.tools.microsoft import is_msvc, msvc_runtime_flag, unix_path
 from conan.tools.scm import Version
+from conan.tools.system.package_manager import Dnf, Yum
 
 import fnmatch
 import os
@@ -124,6 +125,19 @@ class OpenSSLConan(ConanFile):
 
     def layout(self):
         basic_layout(self, src_folder="src")
+
+    def system_requirements(self):
+        # Note errors are ignored: package names / requirements might change over time
+        # and the build will just fail later. No need for complicated distro version logic here
+        # but does currently mean installing each package individually.
+        dnf = Dnf(self)
+        yum = Yum(self)
+        for pkg in ["perl-FindBin", "perl-IPC-Cmd", "perl-File-Compare", "perl-File-Copy", "perl-Digest-SHA", "perl-Time-Piece"]:
+            try:
+                dnf.install([pkg], check=True)
+                yum.install([pkg], check=True)
+            except ConanException:
+                pass
 
     def requirements(self):
         if not self.options.no_zlib:

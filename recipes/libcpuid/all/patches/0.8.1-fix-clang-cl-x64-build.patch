@@ -1,0 +1,25 @@
+From 32d880cb239e494fd63ebd355316fe6962d3224a Mon Sep 17 00:00:00 2001
+From: Luke Elliott <luke.b.elliott@gmail.com>
+Date: Thu, 18 Dec 2025 10:25:59 +0000
+Subject: [PATCH] fix clang-cl x64 build.
+
+---
+ libcpuid/CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libcpuid/CMakeLists.txt b/libcpuid/CMakeLists.txt
+index 09189ef..a2783af 100644
+--- a/libcpuid/CMakeLists.txt
++++ b/libcpuid/CMakeLists.txt
+@@ -21,7 +21,7 @@ if(UNIX)
+   add_compile_definitions(_GNU_SOURCE)
+ endif(UNIX)
+ 
+-if("${MSVC_CXX_ARCHITECTURE_ID}" MATCHES "x64")
++if (MSVC AND CMAKE_C_COMPILER_ARCHITECTURE_ID STREQUAL "x64")
+   list(APPEND cpuid_sources masm-x64.asm)
+ endif()
+ 
+-- 
+2.52.0.windows.1
+

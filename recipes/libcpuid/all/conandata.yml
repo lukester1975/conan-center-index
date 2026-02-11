@@ -1,4 +1,7 @@
 sources:
+  "0.8.1":
+    url: "https://github.com/anrieff/libcpuid/archive/v0.8.1.tar.gz"
+    sha256: "81f2f40da5d66b8220476e116cb40bca4e6a62c0d22bdeeb8e3856cf14607007"
   "0.5.1":
     url: "https://github.com/anrieff/libcpuid/archive/v0.5.1.tar.gz"
     sha256: "36d62842ef43c749c0ba82237b10ede05b298d79a0e39ef5fd1115ba1ff8e126"
@@ -6,6 +9,8 @@ sources:
     url: "https://github.com/anrieff/libcpuid/archive/v0.5.0.tar.gz"
     sha256: "49893f31475510aa0ebe2ad3a29fad95e2a592cc5f48451c95271c536f89a157"
 patches:
+  "0.8.1":
+    - patch_file: "patches/0.8.1-fix-clang-cl-x64-build.patch"
   "0.5.1":
     - patch_file: "patches/0.5.0-cmake-fixes.patch"
   "0.5.0":

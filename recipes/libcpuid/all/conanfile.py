@@ -43,10 +43,6 @@ class LibCpuidConan(ConanFile):
     def layout(self):
         cmake_layout(self, src_folder="src")
 
-    def package_id(self):
-        del self.info.settings.compiler
-        del self.info.settings.build_type
-
     def validate(self):
         if self.settings.arch not in ("x86", "x86_64"):
             raise ConanInvalidConfiguration("libcpuid is only available for x86 and x86_64 architecture")
